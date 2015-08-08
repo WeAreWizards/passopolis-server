@@ -1,0 +1,13 @@
+diff --git a/mitro-core/build.xml b/mitro-core/build.xml
+index 84e7f66..6d12735 100755
+--- a/mitro-core/build.xml
++++ b/mitro-core/build.xml
+@@ -77,7 +77,7 @@
+             <compilerarg value="${javac_args}" />
+             <compileoptions/>
+             <!-- treat warnings as errors -->
+-            <compilerarg value="-Werror"/>
++            <!-- <compilerarg value="-Werror"/> -->
+         </javac>
+ 
+         <!-- copy any resources to the output directory -->
