@@ -18,7 +18,7 @@
  *
  *     You should have received a copy of the GNU General Public License
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *     
+ *
  *     You can contact the authors at inbound@mitro.co.
  *******************************************************************************/
 package co.mitro.core.server;
@@ -81,7 +81,7 @@ import com.j256.ormlite.table.TableUtils;
 
 public class Manager implements AutoCloseable {
   final static private SecureRandom randomNumberGenerator = new SecureRandom();
-  
+
   private static final Logger logger = LoggerFactory.getLogger(Manager.class);
 
   // All the DB objects; used to create tables
@@ -126,13 +126,13 @@ public class Manager implements AutoCloseable {
 
 
   /**
-   * This generates a list of SelectArgs which must be used when 
-   * building queries, especially with Strings. Strings are otherwise not escaped, 
+   * This generates a list of SelectArgs which must be used when
+   * building queries, especially with Strings. Strings are otherwise not escaped,
    * even when used with .in() or .eq(). This can result in an SQL injection
    * vulnerability.
-   *  
+   *
    * See: http://ormlite.com/javadoc/ormlite-core/doc-files/ormlite_3.html#Select-Arguments
-   * 
+   *
    * @param items A Collection of any specific type of Object.
    * @return A list of SelectArgs that can be used in place of the List of Objects.
    */
@@ -144,8 +144,8 @@ public class Manager implements AutoCloseable {
     }
     return args;
   }
-  
-  
+
+
   /**
    * Stores in-progress transactions with a unique id. Aborts them after a timeout.
    */
@@ -270,7 +270,7 @@ public class Manager implements AutoCloseable {
   }
 
   /**
-   * Extracts a PSQLException from an ORMLite wrapped SQLException.  
+   * Extracts a PSQLException from an ORMLite wrapped SQLException.
    * This is necessary in order to pull out sqlstate data
    * @param e: a SQLException object (hopefully) containing a wrapped PSQLException
    * @return the PSQLException that's contained or NULL if none is contained.
@@ -305,7 +305,7 @@ public class Manager implements AutoCloseable {
         }
       }
     }
-    
+
     /*
      * WARNING! from the manual:
      * In general, a unique constraint is violated when there are two
@@ -389,7 +389,7 @@ public class Manager implements AutoCloseable {
 
     connectionSource.getReadWriteConnection().setAutoCommit(false);
     if (connectionSource.getDatabaseType() instanceof PostgresDatabaseType) {
-      String type = "serializable";
+      String type = "repeatable read";
       if (mode == ConnectionMode.READ_ONLY) {
         type = "repeatable read read only";
       }
@@ -468,18 +468,18 @@ public class Manager implements AutoCloseable {
           Preconditions.checkNotNull(user);
           processedAuditDao.create(new DBProcessedAudit(this.requestor, user, secretId, GrantOrRevoke.REVOKE, this.transactionId, this.ipString, this.deviceId));
         }
-        
+
         if (!ud.newSecrets.isEmpty()) {
           logger.info("{} gained access to {} secrets", ud.userName, ud.newSecrets.size());
         }
         if (!ud.removedSecrets.isEmpty()) {
-          logger.info("{} lost access to {} secrets", ud.userName, ud.removedSecrets.size());          
+          logger.info("{} lost access to {} secrets", ud.userName, ud.removedSecrets.size());
         }
       }
-    
+
     } catch (MitroServletException e) {
       logger.error("unkonwn error creating log lines", e);
-    } finally {    
+    } finally {
       addAuditLog(DBAudit.ACTION.TRANSACTION_COMMIT, this.requestor, null, null, null, null);
       connectionSource.getReadWriteConnection().commit(null);
     }
@@ -553,7 +553,7 @@ public class Manager implements AutoCloseable {
         DaoManager.unregisterDao(source, dao);
       }
     }
-    
+
     // do NOT remove this writeAuditLogs check.  Otherwise, we will go in an endless loop
     // (the manager used by the transaction processor will trigger another txn complete)
     if (shouldWriteAuditLogs()) {
@@ -577,7 +577,7 @@ public class Manager implements AutoCloseable {
    * TODO: Remove this now that servlets are passed the requestor?
    */
   public void setRequestor(DBIdentity requestor, String deviceId) throws MitroServletException {
-    this.deviceId = deviceId; 
+    this.deviceId = deviceId;
     if (this.requestor != null && !requestor.equals(this.requestor)) {
       // transactions may not be shared between users.
       throw new MitroServletException(
@@ -585,18 +585,18 @@ public class Manager implements AutoCloseable {
     }
     this.requestor = requestor;
   }
-  
-  
+
+
 
   /**
-   * This sets the name of the high level operation name (e.g. sharesite), 
+   * This sets the name of the high level operation name (e.g. sharesite),
    * which is passed from the client.
    * @param op the name of the high-level operation, passed from the client.
    */
   public void setOperationName(String op) {
     this.operationName = op;
   }
-  
+
   public String getOperationName() {
     return operationName;
   }
@@ -604,15 +604,15 @@ public class Manager implements AutoCloseable {
   public void disableAuditLogs() {
     this.writeAuditLogs = false;
   }
-  
+
   public void enableAuditLogs() {
     this.writeAuditLogs = true;
   }
 
   public boolean shouldWriteAuditLogs() {
-    return writeAuditLogs && mode != ConnectionMode.READ_ONLY; 
+    return writeAuditLogs && mode != ConnectionMode.READ_ONLY;
   }
-  
+
   public void addAuditLog(DBAudit.ACTION action, DBIdentity user,
       DBIdentity targetUser, DBGroup targetGroup,
       DBServerVisibleSecret targetSVS, String note) throws SQLException {
