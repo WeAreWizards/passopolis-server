@@ -53,7 +53,6 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Charsets;
 import com.google.gson.Gson;
 
@@ -149,13 +148,12 @@ public class MainTest {
     // TODO: Retry if ports are not available; this could fail in weird circumstances
     Main.HTTP_PORT = getProbablyAvailablePort();
     Main.HTTPS_PORT = getProbablyAvailablePort();
-    MetricRegistry metrics = new MetricRegistry();
 
     ServletContextHandler context = new ServletContextHandler();
     context.setContextPath("/servlets");
     Main.registerServlet(context, new TestHandler());
 
-    Server server = Main.createJetty(metrics, context);
+    Server server = Main.createJetty(context);
     server.start();
 
     // Make an HTTP request and read the response

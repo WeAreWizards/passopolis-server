@@ -112,9 +112,6 @@ import co.mitro.core.servlets.VerifyAccountServlet;
 import co.mitro.core.servlets.VerifyDeviceServlet;
 import co.mitro.core.servlets.WebSignupServlet;
 import co.mitro.core.util.NullRequestRateLimiter;
-import co.mitro.metrics.BatchStatsDClient;
-import co.mitro.metrics.StatsDReporter;
-import co.mitro.metrics.UDPBatchStatsDClient;
 import co.mitro.twofactor.NewUser;
 import co.mitro.twofactor.QRGenerator;
 import co.mitro.twofactor.TFAPreferences;
@@ -123,16 +120,6 @@ import co.mitro.twofactor.TwoFactorAuth;
 import co.mitro.twofactor.TwoFactorSigningService;
 import co.mitro.twofactor.Verify;
 
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.health.HealthCheckRegistry;
-import com.codahale.metrics.health.jvm.ThreadDeadlockHealthCheck;
-import com.codahale.metrics.jetty9.InstrumentedConnectionFactory;
-import com.codahale.metrics.jetty9.InstrumentedHandler;
-import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
-import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
-import com.codahale.metrics.servlets.AdminServlet;
-import com.codahale.metrics.servlets.HealthCheckServlet;
-import com.codahale.metrics.servlets.MetricsServlet;
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -201,41 +188,6 @@ public class Main {
 
     @Override
     public void lifeCycleStopping(LifeCycle event) {
-    }
-  }
-
-  /** Starts/stops StatsDReporter with a Jetty server. */
-  public static class StatsDReporterLifecycle implements LifeCycle.Listener {
-    private final StatsDReporter reporter;
-    private final long period;
-    private final TimeUnit unit;
-
-    public StatsDReporterLifecycle(StatsDReporter reporter, long period, TimeUnit unit) {
-      this.reporter = reporter;
-      this.period = period;
-      this.unit = unit;
-    }
-
-    @Override
-    public void lifeCycleFailure(LifeCycle event, Throwable cause) {
-    }
-
-    @Override
-    public void lifeCycleStarted(LifeCycle event) {
-    }
-
-    @Override
-    public void lifeCycleStarting(LifeCycle event) {
-      reporter.start(period, unit);
-    }
-
-    @Override
-    public void lifeCycleStopped(LifeCycle event) {
-    }
-
-    @Override
-    public void lifeCycleStopping(LifeCycle event) {
-      reporter.stop();
     }
   }
 
@@ -351,14 +303,11 @@ public class Main {
       }
     }
 
-
     String emergencyRejectRequests = System.getProperty("emergencyRejectTrafficFrac");
     if (emergencyRejectRequests != null) {
       double d = Double.parseDouble(emergencyRejectRequests);
       MitroServlet.setPercentReadRequestsToRejectForUseOnlyInEmergencies(d);
     }
-    MetricRegistry metrics = new MetricRegistry();
-    HealthCheckRegistry healthChecks = new HealthCheckRegistry();
 
     // Register all servlets, using the path specified by @WebServlet
     ServletContextHandler context = new ServletContextHandler();
@@ -366,25 +315,6 @@ public class Main {
     for (HttpServlet servlet : servlets) {
       registerServlet(context, servlet);
     }
-
-    // Export metrics and health checks using the admin servlet
-    context.setAttribute(MetricsServlet.METRICS_REGISTRY, metrics);
-    context.setAttribute(HealthCheckServlet.HEALTH_CHECK_REGISTRY, healthChecks);
-    context.addServlet(new ServletHolder(new AdminServlet()), "/admin/*");
-
-
-    // Add the deadlock health check and built-in JVM metrics
-    healthChecks.register("deadlock", new ThreadDeadlockHealthCheck());
-    metrics.register("jvm.gc", new GarbageCollectorMetricSet());
-    metrics.register("jvm.mem", new MemoryUsageGaugeSet());
-
-    // Report statistics to StatsD (datadog)
-    // datadog reports once every 10 seconds, so no point in us doing anything more
-    BatchStatsDClient statsd = new UDPBatchStatsDClient("localhost", 8125);
-    StatsDReporter reporter = StatsDReporter.forRegistry(metrics).prefixedWith("mitrocore")
-        .build(statsd);
-    StatsDReporterLifecycle reporterLifecycle =
-        new StatsDReporterLifecycle(reporter, 10, TimeUnit.SECONDS);
 
     // Log requests using SLF4J at INFO; Use X-Forwarded-For as source IP
     RequestLogHandler requestLogHandler = new RequestLogHandler();
@@ -405,14 +335,11 @@ public class Main {
     loadDefaultServerHints();
 
     // Create and start the server
-    // TODO: Use new InstrumentedQueuedThreadPool(metrics) to instrument Jetty threads?
-    final Server server = createJetty(metrics, handlers);
+    final Server server = createJetty(handlers);
 
     // Stop if an error occurs on startup (e.g. BindException due to reusing a port)
     StartupErrorStopper stopper = new StartupErrorStopper(server);
     server.addLifeCycleListener(stopper);
-    // report statsd
-    server.addLifeCycleListener(reporterLifecycle);
     // clean up idle transactions
     server.addLifeCycleListener(managerFactory);
 
@@ -443,22 +370,19 @@ public class Main {
   }
 
   /** Creates a Jetty server listening on HTTP and HTTPS, serving handlers. */
-  public static Server createJetty(MetricRegistry metrics, Handler handler)
+  public static Server createJetty(Handler handler)
       throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
-    // TODO: Use new InstrumentedQueuedThreadPool(metrics) to instrument Jetty threads?
     final Server server = new Server();
-    // TODO: Instrument each handler individually for finer grained metrics
-    InstrumentedHandler instrumented = new InstrumentedHandler(metrics);
-    instrumented.setHandler(handler);
-    server.setHandler(instrumented);
+    server.setHandler(handler);
 
     HttpConfiguration httpConfig = new HttpConfiguration();
     // Parses X-Forwarded-For headers for Servlet.getRemoteAddr()
     httpConfig.addCustomizer(new ForwardedRequestCustomizer());
-    // Collect statistics from the server
-    final ServerConnector connector = new ServerConnector(server,
-        new InstrumentedConnectionFactory(new HttpConnectionFactory(httpConfig),
-            metrics.timer("http.connections")));
+
+    final ServerConnector connector = new ServerConnector(
+        server,
+        new HttpConnectionFactory(httpConfig)
+    );
     server.addConnector(connector);
 
     connector.setPort(HTTP_PORT);
@@ -477,8 +401,7 @@ public class Main {
     HttpConfiguration httpsConfig = new HttpConfiguration();
     httpsConfig.addCustomizer(new SecureRequestCustomizer());
     httpsConfig.addCustomizer(new ForwardedRequestCustomizer());
-    ConnectionFactory httpsFactory = new InstrumentedConnectionFactory(new HttpConnectionFactory(httpsConfig),
-        metrics.timer("https.connections"));
+    ConnectionFactory httpsFactory = new HttpConnectionFactory(httpsConfig);
 
     ServerConnector sslConnector = new ServerConnector(server, sslFactory, httpsFactory);
     sslConnector.setPort(HTTPS_PORT);

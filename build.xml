@@ -31,12 +31,6 @@
     <pathelement location="${lib}/jetty-util-9.0.3.v20130506.jar" />
     <pathelement location="${lib}/keyczar-0.71f-040513.jar" />
     <pathelement location="${lib}/log4j-1.2.17.jar" />
-    <pathelement location="${lib}/metrics-core-3.0.0-BETA3.jar"/>
-    <pathelement location="${lib}/metrics-healthchecks-3.0.0-BETA3.jar"/>
-    <pathelement location="${lib}/metrics-jetty9-3.0.0-BETA3.jar"/>
-    <pathelement location="${lib}/metrics-json-3.0.0-BETA3.jar"/>
-    <pathelement location="${lib}/metrics-jvm-3.0.0-BETA3.jar"/>
-    <pathelement location="${lib}/metrics-servlets-3.0.0-BETA3.jar"/>
     <pathelement location="${lib}/mustache-compiler-0.8.13.jar" />
     <pathelement location="${lib}/ormlite-core-4.45.jar" />
     <pathelement location="${lib}/ormlite-jdbc-4.45.jar" />
