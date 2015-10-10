@@ -26,6 +26,9 @@ package co.mitro.core.servlets;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.sql.SQLException;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 
 import javax.servlet.annotation.WebServlet;
 
@@ -51,6 +54,8 @@ import co.mitro.twofactor.TwoFactorCodeChecker;
 import co.mitro.twofactor.TwoFactorSigningService;
 
 import com.google.common.base.Strings;
+import com.j256.ormlite.dao.GenericRawResults;
+import com.j256.ormlite.stmt.QueryBuilder;
 
 
 @WebServlet("/api/GetMyPrivateKey")
@@ -103,6 +108,7 @@ public class GetMyPrivateKey extends MitroServlet {
           logger.info("Not actually sending email for {} because it's an automatic login", identity.getName());
           throw new DoEmailVerificationException();
         }
+
         // we need to do an email verification now.
         sendEmailAndThrow(in, context, identity);
       }
@@ -221,13 +227,52 @@ public class GetMyPrivateKey extends MitroServlet {
       String token = makeLoginTokenString(identity, in.extensionId, in.deviceId);
       String tokenSignature = TwoFactorSigningService.signToken(token);
 
-      if (!context.manager.isReadOnly()) {
-        DBEmailQueue email = DBEmailQueue.makeNewDeviceVerification(identity.getName(), token, tokenSignature, context.platform, context.requestServerUrl, context.sourceIp);
-        context.manager.emailDao.create(email);
-        context.manager.commitTransaction();
+      GenericRawResults<String[]> queuedEmails = context.manager.emailDao.queryRaw(
+              "SELECT type_string, arg_string FROM ("
+              + "(SELECT type_string, arg_string FROM email_queue)"
+              + " UNION "
+              + "(SELECT type_string, arg_string FROM email_queue_sent) "
+              + ") WHERE type_string=? AND arg_string LIKE ?",
+              DBEmailQueue.Type.LOGIN_ON_NEW_DEVICE.getValue(),
+              "%" + identity.getName() + "%"
+      );
+      boolean recentEmail = false;
+
+      // this should be UTC as per the JDK documentation
+      final long now = System.currentTimeMillis();
+      for(String[] emailArguments : queuedEmails) {
+          String[] args = DBEmailQueue.decodeArguments(emailArguments[1]);
+          String emailRecipient = args[0];
+          DBEmailQueue.DeviceVerificationArguments arguments = DBEmailQueue.decodeDeviceVerificationArguments(args[1]);
+
+          // Gautier: People trying to sign in a few times in a row is a common
+          // pattern I've seen in the logs so I'd like to make sure we don't
+          // flood their inboxes and trigger spam filters.  A new token valid
+          // for 12 hours is generated every time the users try to sign in on a
+          // new device. With this PR, users are able to resend 15 minutes
+          // after the previous try.
+          //
+          // timestampMs is used at the token creating in the
+          // makeLoginTokenString function using System.currentTimeMillis
+          if (emailRecipient.equals(identity.getName())
+                  && arguments.deviceId != null && in.deviceId != null && arguments.deviceId.equals(in.deviceId)
+                  && (now - arguments.timestampMs) < 1000 * 60 * 15) {
+              recentEmail = true;
+              break;
+          }
       }
-      // TODO: throw ReadOnlyServerException if isReadOnly, after we don't retry on the secondary!
-      logger.info("Forcing user {} to verify device {}", identity.getName(), in.deviceId);
+
+      if (!recentEmail) {
+          if (!context.manager.isReadOnly()) {
+            DBEmailQueue email = DBEmailQueue.makeNewDeviceVerification(identity.getName(), token, tokenSignature, context.platform, context.requestServerUrl, context.sourceIp);
+            context.manager.emailDao.create(email);
+            context.manager.commitTransaction();
+          }
+          // TODO: throw ReadOnlyServerException if isReadOnly, after we don't retry on the secondary!
+          logger.info("Forcing user {} to verify device {}", identity.getName(), in.deviceId);
+      } else {
+          logger.info("Forcing user {} to verify device {} (email already sent)", identity.getName(), in.deviceId);
+      }
       throw new DoEmailVerificationException();
     } catch (SQLException|KeyczarException e) {
       throw new MitroServletException(e);

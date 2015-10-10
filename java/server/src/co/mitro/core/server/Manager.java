@@ -48,6 +48,7 @@ import co.mitro.core.server.data.DBAcl;
 import co.mitro.core.server.data.DBAudit;
 import co.mitro.core.server.data.DBDeviceSpecificInfo;
 import co.mitro.core.server.data.DBEmailQueue;
+import co.mitro.core.server.data.DBEmailQueueSent;
 import co.mitro.core.server.data.DBEmailRecord;
 import co.mitro.core.server.data.DBFutureAlert;
 import co.mitro.core.server.data.DBGroup;
@@ -87,7 +88,7 @@ public class Manager implements AutoCloseable {
   // All the DB objects; used to create tables
   private static final Class<?>[] DATA_CLASSES = { DBGroup.class, DBAcl.class,
       DBGroupSecret.class, DBServerVisibleSecret.class, DBIdentity.class,
-      DBIssue.class, DBEmailQueue.class, DBAudit.class, DBPendingGroup.class,
+      DBIssue.class, DBEmailQueue.class, DBEmailQueueSent.class, DBAudit.class, DBPendingGroup.class,
       DBDeviceSpecificInfo.class, DBSignup.class,
       DBHistoricalOrgState.class, DBHistoricalUserState.class, DBProcessedAudit.class,
       DBUserName.class, DBEmailRecord.class, DBFutureAlert.class,
