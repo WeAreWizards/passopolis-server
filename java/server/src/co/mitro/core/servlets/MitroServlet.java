@@ -136,15 +136,17 @@ public abstract class MitroServlet extends HttpServlet {
     public final Manager manager;
     public final String requestServerUrl;
     public final String platform;
+    public final String sourceIp;
     private boolean isGroupSyncRequest;
 
     public MitroRequestContext(DBIdentity requestor, String jsonRequest,
-        Manager manager, String requestServerUrl, String platform) {
+        Manager manager, String requestServerUrl, String platform, String sourceIp) {
       this.requestor = requestor;
       this.jsonRequest = jsonRequest;
       this.manager = manager;
       this.requestServerUrl = requestServerUrl;
       this.platform = platform;
+      this.sourceIp = sourceIp;
     }
 
     /**
@@ -153,7 +155,7 @@ public abstract class MitroServlet extends HttpServlet {
      */
     public MitroRequestContext(DBIdentity iden, String json,
         Manager mgr, String requestServerUrl) {
-      this(iden, json, mgr, requestServerUrl, null);
+      this(iden, json, mgr, requestServerUrl, null, null);
 
     }
 
@@ -405,7 +407,7 @@ public abstract class MitroServlet extends HttpServlet {
             BeginTransactionServlet.beginTransaction(mgr, rpc.operationName, requestor);
           }
           
-          MitroRequestContext requestContext = new MitroRequestContext(requestor, rpc.request, mgr, requestServerUrl, rpc.platform);
+          MitroRequestContext requestContext = new MitroRequestContext(requestor, rpc.request, mgr, requestServerUrl, rpc.platform, logMetadata.sourceIp);
           requestContext.setIsGroupSyncRequest(isGroupSyncRequest);
 
           MitroRPC out = processCommand(requestContext);

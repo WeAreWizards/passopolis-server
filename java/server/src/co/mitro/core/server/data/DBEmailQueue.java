@@ -161,7 +161,7 @@ public class DBEmailQueue {
     }
   }
 
-  public static DBEmailQueue makeNewDeviceVerification(String recipientAddress, String token, String tokenSignature, String platform, String serverUrl) {
+  public static DBEmailQueue makeNewDeviceVerification(String recipientAddress, String token, String tokenSignature, String platform, String serverUrl, String sourceIp) {
     if (allowsExperimentalEmails(recipientAddress)) {
       Map<String, String> queryParams = new HashMap<String, String>();
       queryParams.put("user", recipientAddress);
@@ -172,11 +172,12 @@ public class DBEmailQueue {
       Map<String, String> emailParams = new HashMap<String, String>();
       emailParams.put("verification_url",  verificationUrl);
       emailParams.put("platform", platform);
+      emailParams.put("source_ip",  sourceIp);
       return makeMandrillEmail(recipientAddress, emailParams, Type.MANDRILL_LOGIN_ON_NEW_DEVICE);
     } else {
       DBEmailQueue email = new DBEmailQueue();
       email.typeString = Type.LOGIN_ON_NEW_DEVICE.getValue();
-      email.setArguments(recipientAddress, token, tokenSignature);
+      email.setArguments(recipientAddress, token, tokenSignature, sourceIp);
       return email;
     }
   }
