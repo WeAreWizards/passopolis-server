@@ -47,7 +47,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-public final class RPC { 
+public final class RPC {
   public static class LoginToken {
     public String email;
     public long timestampMs;
