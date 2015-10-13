@@ -617,7 +617,7 @@ public final class RPC {
     public LogMetadata(HttpServletRequest request) {
       timestamp = System.currentTimeMillis();
       endpoint = request.getServletPath();
-      sourceIp = request.getHeader("X-Real-Ip");
+      sourceIp = request.getRemoteAddr();
       isRequest = true;
     }
     

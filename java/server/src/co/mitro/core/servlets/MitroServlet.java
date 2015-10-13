@@ -407,7 +407,7 @@ public abstract class MitroServlet extends HttpServlet {
             BeginTransactionServlet.beginTransaction(mgr, rpc.operationName, requestor);
           }
           
-          MitroRequestContext requestContext = new MitroRequestContext(requestor, rpc.request, mgr, requestServerUrl, rpc.platform, logMetadata.sourceIp);
+          MitroRequestContext requestContext = new MitroRequestContext(requestor, rpc.request, mgr, requestServerUrl, rpc.platform, request.getRemoteAddr());
           requestContext.setIsGroupSyncRequest(isGroupSyncRequest);
 
           MitroRPC out = processCommand(requestContext);
