@@ -232,7 +232,7 @@ public class GetMyPrivateKey extends MitroServlet {
               + "(SELECT type_string, arg_string FROM email_queue)"
               + " UNION "
               + "(SELECT type_string, arg_string FROM email_queue_sent) "
-              + ") WHERE type_string=? AND arg_string LIKE ?",
+              + ") AS email_queues_merged WHERE type_string=? AND arg_string LIKE ?",
               DBEmailQueue.Type.LOGIN_ON_NEW_DEVICE.getValue(),
               "%" + identity.getName() + "%"
       );
