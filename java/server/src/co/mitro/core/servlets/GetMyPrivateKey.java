@@ -222,7 +222,7 @@ public class GetMyPrivateKey extends MitroServlet {
       String tokenSignature = TwoFactorSigningService.signToken(token);
 
       if (!context.manager.isReadOnly()) {
-        DBEmailQueue email = DBEmailQueue.makeNewDeviceVerification(identity.getName(), token, tokenSignature, context.platform, context.requestServerUrl);
+        DBEmailQueue email = DBEmailQueue.makeNewDeviceVerification(identity.getName(), token, tokenSignature, context.platform, context.requestServerUrl, context.sourceIp);
         context.manager.emailDao.create(email);
         context.manager.commitTransaction();
       }

@@ -81,11 +81,11 @@ public class DBEmailQueueTest {
 
   @Test
   public void testNewDeviceVerification() {
-    DBEmailQueue email = DBEmailQueue.makeNewDeviceVerification("foo", "bar", "baz", "qux", "https://mitro.co");
+    DBEmailQueue email = DBEmailQueue.makeNewDeviceVerification("foo", "bar", "baz", "qux", "https://mitro.co", "123.123.123.123");
     assertEquals(DBEmailQueue.Type.LOGIN_ON_NEW_DEVICE, email.getType());
-    assertArrayEquals(new String[]{"foo", "bar", "baz"}, email.getArguments());
+    assertArrayEquals(new String[]{"foo", "bar", "baz", "123.123.123.123"}, email.getArguments());
 
-    DBEmailQueue mandrillEmail = DBEmailQueue.makeNewDeviceVerification("a@mitro.co", "bar", "baz", "qux", "https://mitro.co");
+    DBEmailQueue mandrillEmail = DBEmailQueue.makeNewDeviceVerification("a@mitro.co", "bar", "baz", "qux", "https://mitro.co", "123.123.123.123");
     assertEquals(DBEmailQueue.Type.MANDRILL_LOGIN_ON_NEW_DEVICE, mandrillEmail.getType());
     assertEquals(DBEmailQueue.Type.MANDRILL_LOGIN_ON_NEW_DEVICE.getValue(), mandrillEmail.mandrillTemplateName);
     assertArrayEquals(new String[]{null, null, null, null, "a@mitro.co"}, mandrillEmail.getArguments());
