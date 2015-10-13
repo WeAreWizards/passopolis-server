@@ -43,6 +43,7 @@ import co.mitro.core.exceptions.DoTwoFactorAuthException;
 import co.mitro.core.exceptions.MitroServletException;
 import co.mitro.core.server.Manager;
 import co.mitro.core.server.data.DBDeviceSpecificInfo;
+import co.mitro.core.server.data.DBEmailQueue;
 import co.mitro.core.server.data.DBIdentity;
 import co.mitro.core.server.data.RPC.GetMyPrivateKeyRequest;
 import co.mitro.core.server.data.RPC.GetMyPrivateKeyResponse;
@@ -143,6 +144,31 @@ public class GetMyPrivateKeyTest extends TwoFactorTests {
       fail("should have thrown");
     } catch (DoEmailVerificationException e) {
       // no new email sent here.
+      assertEquals(old, manager.emailDao.countOf());
+    }
+  }
+
+  @Test
+  public void checkVerificationEmailsDebounced() throws Exception {
+    long old = manager.emailDao.countOf();
+
+    // try authenticating with an unknown device, non automatic.
+    // it should send an email
+    try {
+      tryLogin(testIdentity, manager,
+          "Device1", testIdentityLoginToken, testIdentityLoginTokenSignature, null, false);
+      fail("should have thrown");
+    } catch (DoEmailVerificationException e) {
+      assertEquals(++old, manager.emailDao.countOf());
+    }
+
+    // try again
+    // it should not send an email
+    try {
+      tryLogin(testIdentity, manager,
+          "Device1", testIdentityLoginToken, testIdentityLoginTokenSignature, null, false);
+      fail("should have thrown");
+    } catch (DoEmailVerificationException e) {
       assertEquals(old, manager.emailDao.countOf());
     }
   }

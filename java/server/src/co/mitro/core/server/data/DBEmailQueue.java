@@ -23,8 +23,6 @@
  *******************************************************************************/
 package co.mitro.core.server.data;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -83,8 +81,25 @@ public class DBEmailQueue {
     return t;
   }
 
+  public static String[] decodeArguments(String argString_) {
+      return gson.fromJson(argString_, String[].class);
+  }
+
+  public class DeviceVerificationArguments {
+      public Long timestampMs;
+      public String deviceId;
+      public DeviceVerificationArguments(Long timestampMs, String deviceId) {
+          this.timestampMs = timestampMs;
+          this.deviceId = deviceId;
+      }
+  }
+
+  public static DeviceVerificationArguments decodeDeviceVerificationArguments(String argString_) {
+      return gson.fromJson(argString_, DeviceVerificationArguments.class);
+  }
+
   public String[] getArguments() {
-    return gson.fromJson(argString, String[].class);
+    return decodeArguments(argString);
   }
 
   public  void setArguments(String... args) {
